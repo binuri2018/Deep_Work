@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { FaCog, FaRedo } from "react-icons/fa"; // Import icons from react-icons
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { FaCog, FaRedo, FaStop } from "react-icons/fa"; // Import icons from react-icons
 
 // Image options stored in "public/assets/"
 const backgroundImages = [
@@ -16,6 +16,23 @@ const CountdownTimer = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [bgImage, setBgImage] = useState(localStorage.getItem("bgImage") || backgroundImages[0].path);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAlarmPlaying, setIsAlarmPlaying] = useState(false);
+
+  
+  const alarmSound = useMemo(() => new Audio("/assets/alarm.mp3"), []);
+
+  const playSound = useCallback(() => {
+    alarmSound.volume = 0.5;
+    alarmSound.play()
+      .then(() => setIsAlarmPlaying(true))
+      .catch((error) => console.log("Audio play failed:", error));
+  }, [alarmSound]);
+
+  const stopSound = useCallback(() => {
+    alarmSound.pause();
+    alarmSound.currentTime = 0; 
+    setIsAlarmPlaying(false);
+  }, [alarmSound]);
 
   useEffect(() => {
     let timer;
@@ -26,14 +43,12 @@ const CountdownTimer = () => {
     } else if (time === 0) {
       playSound();
       setIsRunning(false);
+
+      
+      setTimeout(stopSound, 25000);
     }
     return () => clearInterval(timer);
-  }, [isRunning, time]);
-
-  const playSound = () => {
-    const audio = new Audio("https://www.soundjay.com/button/beep-07.wav");
-    audio.play();
-  };
+  }, [isRunning, time, playSound, stopSound]);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -71,6 +86,12 @@ const CountdownTimer = () => {
           <FaCog size={20} />
         </button>
       </div>
+
+      {isAlarmPlaying && (
+        <button style={styles.stopButton} onClick={stopSound}>
+          <FaStop size={20} /> Stop Alarm
+        </button>
+      )}
 
       {/* Settings Panel */}
       {isSettingsOpen && (
@@ -113,18 +134,24 @@ const styles = {
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
     height: "100vh", fontFamily: "Arial, sans-serif", transition: "background 0.3s ease-in-out"
   },
-  timer: { fontSize: "50px", marginBottom: "20px", color: "white" },
+  timer: { fontSize: "100px", marginBottom: "20px", color: "white" },
   buttonContainer: {
     display: "flex", gap: "10px", marginTop: "10px"
   },
   button: {
     fontSize: "18px", padding: "10px 20px", cursor: "pointer",
-    border: "none", borderRadius: "5px", backgroundColor: "#007bff", color: "white"
+    border: "none", borderRadius: "15px", backgroundColor: "#007bff", color: "white"
   },
   iconButton: {
     fontSize: "18px", padding: "10px", cursor: "pointer",
-    border: "none", borderRadius: "5px", backgroundColor: "#007bff", color: "white",
+    border: "none", borderRadius: "15px", backgroundColor: "#007bff", color: "white",
     display: "flex", alignItems: "center", justifyContent: "center"
+  },
+  stopButton: {
+    fontSize: "18px", padding: "10px 20px", cursor: "pointer",
+    border: "none", borderRadius: "15px", backgroundColor: "#dc3545", color: "white",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    marginTop: "10px"
   },
   settingsPanel: {
     position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
@@ -133,7 +160,7 @@ const styles = {
   },
   closeButton: {
     backgroundColor: "#ff4444", color: "white", border: "none", padding: "10px",
-    cursor: "pointer", fontSize: "16px", borderRadius: "5px", marginTop: "10px"
+    cursor: "pointer", fontSize: "16px", borderRadius: "15px", marginTop: "10px"
   },
   input: {
     fontSize: "18px", padding: "5px", margin: "5px", width: "100%", textAlign: "center"
